@@ -83,8 +83,6 @@ void Mesh::loadFile( char* fileName)
 	{
 		cout<<"file opened"<<endl;
 
-		type = 0;
-
 		while(getline(input,line))
 		{
 			temp.clear();
@@ -101,8 +99,24 @@ void Mesh::loadFile( char* fileName)
 				}
 
 			}
-			if(temp[0]=="f")
+			if(temp[0] == "vt"){
+				if(temp.size() == 3)
+				{
+					Vector2D v(atof(temp[1].c_str()),atof(temp[2].c_str()));
+					texture_mapping.push_back(v);
+				}
+			}
+			if(temp[0] == "vn"){
+				if(temp.size() == 4)
+				{
+					Vector3D v(atof(temp[1].c_str()),atof(temp[2].c_str()),atof(temp[3].c_str()));
+					normal_mapping.push_back(v);
+				}
+			}
+			if(temp[0] == "f")
 			{
+				// cout<<"SIZE ->" << texture_mapping.size()<<endl;
+				
 				if(temp.size()>=4)
 				{
 					vector<int> tempVertices;
@@ -110,33 +124,43 @@ void Mesh::loadFile( char* fileName)
 					Face tempFace(faces.size());
 					for(unsigned int i=1; i<temp.size();++i)
 					{
+
 						tempVertices.push_back(atoi(temp[i].c_str())-1);
+
+
 						Edge tempEdge(edges.size(),atoi(temp[i].c_str())-1,faces.size());
+
+						vector<string> temp_1;
+						StringSplit(temp[i],"/",&temp_1);
+						
+						// cout<< i<<" "<<atoi(temp[i].c_str())-1 <<endl;
+
+						tempEdge.texture_id = atoi(temp_1[1].c_str())-1;
+
+						// cout<< "temp -> "<<atoi(temp_1[1].c_str())-1<<endl;
+
 						//update next_id and edge_id in faces and vertices
 						if(i==temp.size()-1)
 						{
-							tempEdge.next_id=edges.size()-temp.size()+2;
-							vertices[atoi(temp[i].c_str())-1].edge_id=edges.size()-temp.size()+2;
-							tempFace.edge_id=edges.size();
+							tempEdge.next_id = edges.size()-temp.size()+2;
+							vertices[atoi(temp[i].c_str())-1].edge_id = edges.size()-temp.size()+2;
+							tempFace.edge_id = edges.size();
 						}
 						else
 						{
-							vertices[atoi(temp[i].c_str())-1].edge_id=edges.size()+1;
-							tempEdge.next_id=edges.size()+1;
+							vertices[atoi(temp[i].c_str())-1].edge_id = edges.size()+1;
+							tempEdge.next_id = edges.size()+1;
 						}
 						edges.push_back(tempEdge);
 					}
-					tempFace.ver_id=tempVertices;
+					tempFace.ver_id = tempVertices;
 					faces.push_back(tempFace);
-
 				}
 				else
 				{
 					cout<<"file format error: face size"<<endl;
 				}
-
 			}
-
 		}
 		cout<<"succefully load "<<vertices.size()<<" vertices and "<<faces.size()<<" faces and "<<edges.size()<<" edges"<<endl;
 	}
@@ -166,13 +190,13 @@ void Mesh::displayMesh()
 	cout<<"These are edges:"<<endl;
 	for(unsigned int i=0; i<edges.size();++i)
 		edges[i].displayEdge();
-	cout<<"Mesh type is "<<type<<endl;
 }
+
 vector<int> Mesh::edgesOfVertex(int vertex)
 {
 	Edge edge;
 	vector<int> temp;
-	edge=edges[vertices[vertex].edge_id];
+	edge = edges[vertices[vertex].edge_id];
 	if(vertices[vertex].isBoundary)
 	{
 		for(unsigned int i=0; i<edges.size();++i)
@@ -184,9 +208,9 @@ vector<int> Mesh::edgesOfVertex(int vertex)
 	}
 	do
 	{
-		edge=edges[edges[edge.pair_id].next_id];
+		edge = edges[edges[edge.pair_id].next_id];
 		temp.push_back(edge.id);
-	}while(edge.id!=edges[vertices[vertex].edge_id].id);
+	}while(edge.id != edges[vertices[vertex].edge_id].id);
 	return temp;
 }
 
@@ -194,10 +218,10 @@ vector<int> Mesh::edgesOfFace(int face)
 {
 	Edge edge;
 	vector<int> temp;
-	edge=edges[faces[face].edge_id];
+	edge = edges[faces[face].edge_id];
 	do
 	{
-		edge=edges[edge.next_id];
+		edge = edges[edge.next_id];
 		temp.push_back(edge.id);
 	}while(edge.id!=edges[faces[face].edge_id].id);
 	return temp;
@@ -213,6 +237,7 @@ int Mesh::previousEdge(int edge)
 	}while(next.next_id!=edge);
 	return next.id;
 }
+
 void setPairEdge(Mesh & mesh)
 {
 	for(unsigned int i=0; i<mesh.edges.size();++i)
@@ -237,6 +262,7 @@ void setPairEdge(Mesh & mesh)
 		}
 	}
 }
+
 void setVertexNormal( Mesh & mesh)
 {
 	setPairEdge(mesh);
@@ -279,20 +305,20 @@ vector<Vertex> getLoopVertices(Mesh mesh)
 	{
 		neighbor.clear();
 		Vector3D newPoint;
-		neighbor=mesh.edgesOfVertex(i);
+		neighbor = mesh.edgesOfVertex(i);
 		if(mesh.vertices[i].isBoundary)
 		{
-			newVertex.isBoundary=true;
+			newVertex.isBoundary = true;
 			if(neighbor.size()==1)
 			{
-				beta=0.125;
-				newPoint=0.75*mesh.vertices[i].point;
-				Vector3D neighborPoint=mesh.vertices[mesh.edges[neighbor[0]].vertex_id].point;
-				newPoint.display();
-				newPoint=newPoint+beta*neighborPoint;
-				newPoint.display();
-				Edge edge=mesh.edges[mesh.edges[neighbor[0]].next_id];
-				newPoint=newPoint+beta*mesh.vertices[edge.vertex_id].point;
+				beta = 0.125;
+				newPoint = 0.75*mesh.vertices[i].point;
+				Vector3D neighborPoint = mesh.vertices[mesh.edges[neighbor[0]].vertex_id].point;
+				// newPoint.display();
+				newPoint = newPoint+beta*neighborPoint;
+				// newPoint.display();
+				Edge edge = mesh.edges[mesh.edges[neighbor[0]].next_id];
+				newPoint = newPoint + beta * mesh.vertices[edge.vertex_id].point;
 
 
 			}
@@ -302,18 +328,18 @@ vector<Vertex> getLoopVertices(Mesh mesh)
 				if(n==3)
 					beta=0.1875;
 				else
-					beta=3.0/(8.0*(float)n);
-				newPoint=(1-n*beta)*mesh.vertices[i].point;
-				for(int j=0; j<n-1;++j)
+					beta = 3.0/(8.0*(float)n);
+				newPoint = (1-n*beta)*mesh.vertices[i].point;
+				for(unsigned int j=0; j<n-1;++j)
 				{
-					Edge edge=mesh.edges[neighbor[j]];
-					Edge edge1=mesh.edges[edge.next_id];
-					Edge edge2=mesh.edges[edge1.next_id];
+					Edge edge = mesh.edges[neighbor[j]];
+					Edge edge1 = mesh.edges[edge.next_id];
+					Edge edge2 = mesh.edges[edge1.next_id];
 					if(edge2.pair_id==-1)
 					{
-						newPoint=newPoint+beta*mesh.vertices[edge1.vertex_id].point;
+						newPoint = newPoint+beta*mesh.vertices[edge1.vertex_id].point;
 					}
-					newPoint=newPoint+beta*mesh.vertices[edge.vertex_id].point;
+					newPoint = newPoint+beta*mesh.vertices[edge.vertex_id].point;
 
 				}
 
@@ -321,24 +347,25 @@ vector<Vertex> getLoopVertices(Mesh mesh)
 		}
 		else
 		{
-			newVertex.isBoundary=false;
-			int n=neighbor.size();
+			newVertex.isBoundary = false;
+			int n = neighbor.size();
 			if(n==3)
-				beta=0.1875;
+				beta = 0.1875;
 			else
-				beta=3.0/(8.0*(float)n);
-			newPoint=(1-n*beta)*mesh.vertices[i].point;
-			for(int j=0; j<n;++j)
-				newPoint=newPoint+beta*mesh.vertices[mesh.edges[neighbor[j]].vertex_id].point;
+				beta = 3.0/(8.0*(float)n);
+			newPoint = (1-n*beta)*mesh.vertices[i].point;
+			for(unsigned int j=0; j<n;++j)
+				newPoint = newPoint + beta*mesh.vertices[mesh.edges[neighbor[j]].vertex_id].point;
 		}
-		newVertex.point=newPoint;
-		newVertex.id=i;
-		newVertex.isNormal=false;
+		newVertex.point = newPoint;
+		newVertex.id = i;
+		newVertex.isNormal = false;
 		newVertices.push_back(newVertex);
 
 	}
 	return newVertices;
 }
+
 Vertex getLoopEdgeVertex(Mesh mesh, int edge_id)
 {
 	Vertex newVertex;
@@ -348,61 +375,95 @@ Vertex getLoopEdgeVertex(Mesh mesh, int edge_id)
 	if(edge.pair_id==-1)
 	{
 		newVertex.isBoundary=true;
-		point=point+0.5*mesh.vertices[edge.vertex_id].point;
-		edge=mesh.edges[edge.next_id];
-		edge=mesh.edges[edge.next_id];
-		point=point+0.5*mesh.vertices[edge.vertex_id].point;
+		point = point + 0.5*mesh.vertices[edge.vertex_id].point;
+		edge = mesh.edges[edge.next_id];
+		edge = mesh.edges[edge.next_id];
+		point = point + 0.5*mesh.vertices[edge.vertex_id].point;
 
 	}
 	else
 	{
-		newVertex.isBoundary=false;
-		Edge pair=mesh.edges[edge.pair_id];
-		Edge edge_next=mesh.edges[edge.next_id];
-		Edge pair_next=mesh.edges[pair.next_id];
-		point=point+0.375*mesh.vertices[edge.vertex_id].point;
-		point=point+0.375*mesh.vertices[pair.vertex_id].point;
-		point=point+0.125*mesh.vertices[edge_next.vertex_id].point;
-		point=point+0.125*mesh.vertices[pair_next.vertex_id].point;
+		newVertex.isBoundary = false;
+		Edge pair = mesh.edges[edge.pair_id];
+		Edge edge_next = mesh.edges[edge.next_id];
+		Edge pair_next = mesh.edges[pair.next_id];
+		point = point+0.375*mesh.vertices[edge.vertex_id].point;
+		point = point+0.375*mesh.vertices[pair.vertex_id].point;
+		point = point+0.125*mesh.vertices[edge_next.vertex_id].point;
+		point = point+0.125*mesh.vertices[pair_next.vertex_id].point;
 	}
 	newVertex.point=point;
 	return newVertex;
 }
+
+Vector2D getTextureMap(Mesh mesh, int edge_id)
+{
+	Vector2D tex;
+	Edge edge = mesh.edges[edge_id];
+	if(edge.pair_id==-1)
+	{
+		tex.x =  0.5 * mesh.texture_mapping[edge.texture_id].x;
+		tex.y =  0.5 * mesh.texture_mapping[edge.texture_id].y;
+		edge = mesh.edges[edge.next_id];
+		edge = mesh.edges[edge.next_id];
+		tex.x = tex.x + 0.5 * mesh.texture_mapping[edge.texture_id].x;
+		tex.y = tex.y + 0.5 * mesh.texture_mapping[edge.texture_id].y;
+
+	}
+	else
+	{
+		Edge pair = mesh.edges[edge.pair_id];
+		Edge edge_next = mesh.edges[edge.next_id];
+		Edge pair_next = mesh.edges[pair.next_id];
+		tex.x = 0.375 * mesh.texture_mapping[edge.texture_id].x;
+		tex.y = 0.375 * mesh.texture_mapping[edge.texture_id].y;
+		tex.x = tex.x + 0.375 * mesh.texture_mapping[pair.texture_id].x;
+		tex.y = tex.y + 0.375 * mesh.texture_mapping[pair.texture_id].y;
+		tex.x = tex.x + 0.125 * mesh.texture_mapping[edge_next.texture_id].x;
+		tex.y = tex.y + 0.125 * mesh.texture_mapping[edge_next.texture_id].y;
+		tex.x = tex.x + 0.125 * mesh.texture_mapping[pair_next.texture_id].x;
+		tex.y = tex.y + 0.125 * mesh.texture_mapping[pair_next.texture_id].y;
+	}
+	return tex;
+}
+
+
 Mesh getLoopSub(Mesh mesh)   //get the next level of Loop subdivision
 {
 	Mesh newMesh;
-	vector<Vertex> newVertices = mesh.vertices; //getLoopVertices(mesh);
+	vector<Vertex> newVertices = getLoopVertices(mesh);
 	vector<Face> newFaces;
 	vector<Edge> newEdges;
+	vector<Vector2D> newTextures = mesh.texture_mapping;
 	int pushTime;
-	for(unsigned int i=0; i<mesh.faces.size();++i)
-	{
-		pushTime=0;
+	for(unsigned int i=0; i<mesh.faces.size();++i){
+
+		pushTime = 0;
 		//get three edge vertices
-		Edge currentEdge1=mesh.edges[mesh.faces[i].edge_id];
+		Edge currentEdge1 = mesh.edges[mesh.faces[i].edge_id];
 		Vertex newVertex1;
 		Vertex newVertex2;
 		Vertex newVertex3;
 		if(currentEdge1.nextEdgeVertex==-1)
 		{
-			newVertex1=getLoopEdgeVertex(mesh, currentEdge1.id);
-			newVertex1.id=newVertices.size();
+			newVertex1 = getLoopEdgeVertex(mesh, currentEdge1.id);
+			newVertex1.id = newVertices.size();
 			pushTime++;
 			if(currentEdge1.pair_id!=-1)
 				mesh.edges[currentEdge1.pair_id].nextEdgeVertex=newVertex1.id;
 		}
 		else
 		{
-			newVertex1=newVertices[currentEdge1.nextEdgeVertex];
+			newVertex1 = newVertices[currentEdge1.nextEdgeVertex];
 		}
 		Edge currentEdge2=mesh.edges[currentEdge1.next_id];
 		if(currentEdge2.nextEdgeVertex==-1)
 		{
-			newVertex2=getLoopEdgeVertex(mesh, currentEdge2.id);
-			newVertex2.id=newVertices.size()+pushTime;
+			newVertex2 = getLoopEdgeVertex(mesh, currentEdge2.id);
+			newVertex2.id = newVertices.size()+pushTime;
 			pushTime++;
 			if(currentEdge2.pair_id!=-1)
-				mesh.edges[currentEdge2.pair_id].nextEdgeVertex=newVertex2.id;
+				mesh.edges[currentEdge2.pair_id].nextEdgeVertex = newVertex2.id;
 		}
 		else
 		{
@@ -411,15 +472,15 @@ Mesh getLoopSub(Mesh mesh)   //get the next level of Loop subdivision
 		Edge currentEdge3=mesh.edges[currentEdge2.next_id];
 		if(currentEdge3.nextEdgeVertex==-1)
 		{
-			newVertex3=getLoopEdgeVertex(mesh, currentEdge3.id);
-			newVertex3.id=newVertices.size()+pushTime;
+			newVertex3 = getLoopEdgeVertex(mesh, currentEdge3.id);
+			newVertex3.id = newVertices.size()+pushTime;
 			if(currentEdge3.pair_id!=-1)
-				mesh.edges[currentEdge3.pair_id].nextEdgeVertex=newVertex3.id;
+				mesh.edges[currentEdge3.pair_id].nextEdgeVertex = newVertex3.id;
 
 		}
 		else
 		{
-			newVertex3=newVertices[currentEdge3.nextEdgeVertex]; 
+			newVertex3 = newVertices[currentEdge3.nextEdgeVertex]; 
 		}
 		Vertex newConerVertex1=newVertices[currentEdge1.vertex_id];
 		Vertex newConerVertex2=newVertices[currentEdge2.vertex_id];
@@ -446,6 +507,7 @@ Mesh getLoopSub(Mesh mesh)   //get the next level of Loop subdivision
 		newEdge2.next_id=newEdge3.id;
 		newEdge3.next_id=newEdge1.id;
 		newFace.edge_id=newEdge1.id;
+		
 		if(currentEdge1.nextEdgeVertex==-1)
 		{
 			newVertex1.edge_id=newEdge2.id;
@@ -463,6 +525,9 @@ Mesh getLoopSub(Mesh mesh)   //get the next level of Loop subdivision
 			newVertices.push_back(newVertex3);
 
 		}
+
+	
+
 		//construct side triangles
 		//1 face
 		Face conerFace1;
@@ -472,11 +537,11 @@ Mesh getLoopSub(Mesh mesh)   //get the next level of Loop subdivision
 		conerFace1.ver_id.push_back(newVertex2.id);
 		//1 edges
 		Edge newConer1Edge1, newConer1Edge2, newConer1Edge3;
-		newConer1Edge1.vertex_id=newVertex1.id;
-		newConer1Edge2.vertex_id=newConerVertex1.id;
-		newConer1Edge3.vertex_id=newVertex2.id;
-		newConer1Edge1.face_id=conerFace1.id;
-		newConer1Edge2.face_id=conerFace1.id;
+		newConer1Edge1.vertex_id = newVertex1.id;
+		newConer1Edge2.vertex_id = newConerVertex1.id;
+		newConer1Edge3.vertex_id = newVertex2.id;
+		newConer1Edge1.face_id = conerFace1.id;
+		newConer1Edge2.face_id = conerFace1.id;
 		newConer1Edge3.face_id=conerFace1.id;
 		newConer1Edge1.id=newEdges.size()+3;
 		newConer1Edge2.id=newEdges.size()+4;
@@ -545,6 +610,53 @@ Mesh getLoopSub(Mesh mesh)   //get the next level of Loop subdivision
 		newFaces.push_back(conerFace2);
 		newFaces.push_back(conerFace3);
 		//edges
+		
+// TODO
+		// Vector2D tex1 = getTextureMap(mesh,currentEdge1.id);
+		// newEdge1.texture_id = newTextures.size();
+		// newConer1Edge1.texture_id = newTextures.size();
+		// newConer3Edge3.texture_id = newTextures.size();
+		// newTextures.push_back(tex1);
+		
+		// Vector2D tex2 = getTextureMap(mesh,currentEdge2.id);
+		// newEdge2.texture_id = newTextures.size();
+		// newConer2Edge1.texture_id = newTextures.size();
+		// newConer1Edge3.texture_id = newTextures.size();
+		// newTextures.push_back(tex2);
+		
+		// Vector2D tex3 = getTextureMap(mesh,currentEdge3.id);
+		// newEdge3.texture_id = newTextures.size();
+		// newConer3Edge1.texture_id = newTextures.size();
+		// newConer2Edge3.texture_id = newTextures.size();
+		// newTextures.push_back(tex3);
+
+		// newConer1Edge2.texture_id = currentEdge2.texture_id;
+		// newConer2Edge2.texture_id = currentEdge3.texture_id;
+		// newConer3Edge2.texture_id = currentEdge1.texture_id;
+
+		cout<<"Fff"<<endl;
+		Vector2D tex1 = getTextureMap(mesh,currentEdge1.id);
+		newEdge1.texture_id = newTextures.size();
+		newConer1Edge1.texture_id = newTextures.size();
+		newConer3Edge3.texture_id = newTextures.size();
+		newTextures.push_back(tex1);
+		
+		Vector2D tex2 = getTextureMap(mesh,currentEdge2.id);
+		newEdge2.texture_id = newTextures.size();
+		newConer2Edge1.texture_id = newTextures.size();
+		newConer1Edge3.texture_id = newTextures.size();
+		newTextures.push_back(tex2);
+		
+		Vector2D tex3 = getTextureMap(mesh,currentEdge3.id);
+		newEdge3.texture_id = newTextures.size();
+		newConer3Edge1.texture_id = newTextures.size();
+		newConer2Edge3.texture_id = newTextures.size();
+		newTextures.push_back(tex3);
+
+		newConer1Edge2.texture_id = currentEdge1.texture_id;
+		newConer2Edge2.texture_id = currentEdge2.texture_id;
+		newConer3Edge2.texture_id = currentEdge3.texture_id;
+
 		newEdges.push_back(newEdge1);
 		newEdges.push_back(newEdge2);
 		newEdges.push_back(newEdge3);
@@ -557,11 +669,14 @@ Mesh getLoopSub(Mesh mesh)   //get the next level of Loop subdivision
 		newEdges.push_back(newConer3Edge1);
 		newEdges.push_back(newConer3Edge2);
 		newEdges.push_back(newConer3Edge3);
+
+
+
+
 	}
 	newMesh.vertices=newVertices;
 	newMesh.faces=newFaces;
 	newMesh.edges=newEdges;
-	newMesh.type=0;
 	// newMesh.vertices = getLoopVertices(newMesh);
 	return newMesh;
 }

@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS =  -Wall -O2
-PROG =subd_hl2656 
+PROG =loop 
 SRCS=display_obj.cpp Vector3D.cpp Mesh.cpp
 
 ifeq ($(shell uname),Darwin)
