@@ -634,7 +634,6 @@ Mesh getLoopSub(Mesh mesh)   //get the next level of Loop subdivision
 		// newConer2Edge2.texture_id = currentEdge3.texture_id;
 		// newConer3Edge2.texture_id = currentEdge1.texture_id;
 
-		cout<<"Fff"<<endl;
 		Vector2D tex1 = getTextureMap(mesh,currentEdge1.id);
 		newEdge1.texture_id = newTextures.size();
 		newConer1Edge1.texture_id = newTextures.size();
@@ -677,6 +676,7 @@ Mesh getLoopSub(Mesh mesh)   //get the next level of Loop subdivision
 	newMesh.vertices=newVertices;
 	newMesh.faces=newFaces;
 	newMesh.edges=newEdges;
+	newMesh.texture_mapping = newTextures;
 	// newMesh.vertices = getLoopVertices(newMesh);
 	return newMesh;
 }

@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <sys/time.h>
+ #include <unistd.h> 
 #include"Mesh.h"
 
 // #include "RgbImage.h"
@@ -62,7 +63,7 @@ void makeCheckImage(void){
 
 
 
-int ImageLoad(char *filename, Image *image) {
+Image ImageLoad(char *filename) {
 
     FILE *file;
 
@@ -77,13 +78,12 @@ int ImageLoad(char *filename, Image *image) {
     char temp; // temporary color storage for bgr-rgb conversion.
 
     // make sure the file is there.
-
-    cout<<"file name"<<filename<<endl;
+    Image image;
     if ((file = fopen(filename, "rb"))==NULL){
 
         printf("File Not Found : %s\n",filename);
 
-        return 0;
+        // return 0;
 
     }
 
@@ -93,25 +93,24 @@ int ImageLoad(char *filename, Image *image) {
 
     // read the width
 
-    if ((i = fread(&image->sizeX, 4, 1, file)) != 1) {
+    if ((i = fread(&image.sizeX, 4, 1, file)) != 1) {
 
         printf("Error reading width from %s.\n", filename);
 
-        return 0;
+        // return 0;
 
     }
 
-    cout << "size_x -> "<<image->sizeX<<endl;
 
     //printf("Width of %s: %lu\n", filename, image->sizeX);
 
     // read the height
 
-    if ((i = fread(&image->sizeY, 4, 1, file)) != 1) {
+    if ((i = fread(&image.sizeY, 4, 1, file)) != 1) {
 
         printf("Error reading height from %s.\n", filename);
 
-        return 0;
+        // return 0;
 
     }
 
@@ -119,7 +118,7 @@ int ImageLoad(char *filename, Image *image) {
 
     // calculate the size (assuming 24 bits or 3 bytes per pixel).
 
-    size = image->sizeX * image->sizeY * 3;
+    size = image.sizeX * image.sizeY * 3;
 
     // read the planes
 
@@ -127,7 +126,7 @@ int ImageLoad(char *filename, Image *image) {
 
         printf("Error reading planes from %s.\n", filename);
 
-        return 0;
+        // return 0;
 
     }
 
@@ -135,7 +134,7 @@ int ImageLoad(char *filename, Image *image) {
 
         printf("Planes from %s is not 1: %u\n", filename, planes);
 
-        return 0;
+        // return 0;
 
     }
 
@@ -145,7 +144,7 @@ int ImageLoad(char *filename, Image *image) {
 
         printf("Error reading bpp from %s.\n", filename);
 
-        return 0;
+        // return 0;
 
     }
 
@@ -153,73 +152,71 @@ int ImageLoad(char *filename, Image *image) {
 
         printf("Bpp from %s is not 24: %u\n", filename, bpp);
 
-        return 0;
+        // return 0;
 
     }
 
     // seek past the rest of the bitmap header.
-
     fseek(file, 24, SEEK_CUR);
 
     // read the data.
 
-    image->data = (char*) malloc(size);
+    image.data = (char*) malloc(size);
 
-	cout<<"x-> "<<image->sizeX << " Y-> "<<image->sizeY;
 
-    if (image->data == NULL) {
+    if (image.data == NULL) {
         printf("Error allocating memory for color-corrected image data");
 
-        return 0;
+        // return 0;
 
     }
 
-    if ((i = fread(image->data, size, 1, file)) != 1) {
+    if ((i = fread(image.data, size, 1, file)) != 1) {
 
         printf("Error reading image data from %s.\n", filename);
 
-        return 0;
+        // return 0;
 
     }
 
     for (i=0;i<size;i+=3) { // reverse all of the colors. (bgr -> rgb)
 
-        temp = image->data[i];
+        temp = image.data[i];
 
-        image->data[i] = image->data[i+2];
+        image.data[i] = image.data[i+2];
 
-        image->data[i+2] = temp;
+        image.data[i+2] = temp;
 
     }
     fclose(file);
     // we're done.
 
-    return 1;
+    return image;
 
 }
 
 
-Image * loadTexture(){
+Image loadTexture(){
 
-    Image *image1;
+    Image image1;
 
     // allocate space for texture
 
-    image1 = (Image *) malloc(sizeof(Image));
+    // image1 = (Image *) malloc(sizeof(Image));
 
-    cout<< "IMage size ->"<<sizeof(Image)<<endl;
-    if (image1 == NULL) {
+    // if (image1 == NULL) {
 
-        printf("Error allocating space for image");
+    //     printf("Error allocating space for image");
 
-        exit(0);
+    //     exit(0);
 
-    }
+    // }
 
-    if (!ImageLoad("Cube.bmp", image1)) {
-    	cout <<"not loaded"<<endl;
-        exit(1);
-    }
+    image1 = ImageLoad("diffuse.bmp");
+    // if (!ImageLoad("Cube_plane1.bmp", image1)) {
+    // 	cout <<"not loaded"<<endl;
+    //     exit(1);
+    // }
 
     return image1;
 
@@ -242,11 +239,9 @@ void loadTextureFromFile(char *filename)
 
 	// Pixel alignment: each row is word aligned (aligned to a 4 byte boundary)
 	//    Therefore, no need to call glPixelStore( GL_UNPACK_ALIGNMENT, ... );
-    cout<<"Load texture before"<<endl;
 
-    Image *image1 = loadTexture();
+    Image image1 = loadTexture();
 
-    cout<<"Load texture after"<<endl;
 
 	glGenTextures(1, &texture[0]);                  // Create The Texture
 	glBindTexture(GL_TEXTURE_2D, texture[0]);
@@ -262,7 +257,7 @@ void loadTextureFromFile(char *filename)
 
 
 	// glTexImage2D(GL_TEXTURE_2D, 0, 3, image1.get_width(), image.get_height(), 0, GL_RGB, GL_UNSIGNED_BYTE, buffer );
-	 glTexImage2D(GL_TEXTURE_2D, 0, 3, image1->sizeX, image1->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, image1->data);
+	 glTexImage2D(GL_TEXTURE_2D, 0, 3, image1.sizeX, image1.sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, image1.data);
 
 }
 
@@ -339,27 +334,24 @@ void SetupRC()
 void displayMesh()
 {
 	Mesh mesh;
-	cout<<"gg"<<endl;
 	mesh = myMesh[currentMesh];
 
-	cout<<"in displayMesh"<<endl;
 
-	char* filename = "Cube.png";
-
-
+	// sleep(2);
 
 	if(first_x == 1){
+		sleep(2);
+		char* filename = "Cube.png";
+
 		loadTextureFromFile(filename);
+	
 		first_x ++;
 	}
-	cout<<"sd"<<endl;
 	// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, texture[0]);
-	cout<<"DISSSSSSSSSSSSSS"<<endl;
 	for(unsigned int i = 0; i < mesh.faces.size(); ++i)
 	{
-		cout<<"ll"<<endl;
 		glBegin(GL_TRIANGLES);
 		
 		glNormal3f(mesh.faces[i].faceNormal.x,mesh.faces[i].faceNormal.y,mesh.faces[i].faceNormal.z);
@@ -371,48 +363,60 @@ void displayMesh()
 
 		Edge edge;
 
+		// cout<<"displayMesh"<<endl;
 		edge = mesh.edges[mesh.faces[i].edge_id];
 		do
 		{
+			// cout<<"displayMesh"<<endl;
+
+			// cout<<edge.next_id<<endl;
+
 			edge = mesh.edges[edge.next_id];
+			// cout<<edge.id<<endl;
+			// cout<<edge.texture_id<<endl;
+			// cout<<mesh.texture_mapping.size()<<endl;
+			// cout<<"x -> "<<mesh.texture_mapping[edge.texture_id].x <<"y -> "<<mesh.texture_mapping[edge.texture_id].y <<endl;
 			glTexCoord2f((mesh.texture_mapping[edge.texture_id]).x , (mesh.texture_mapping[edge.texture_id]).y);
+			
+			// cout<<"displayMesh"<<endl;
+			
 			glVertex3f(mesh.vertices[edge.vertex_id].point.x , mesh.vertices[edge.vertex_id].point.y , mesh.vertices[edge.vertex_id].point.z);
 		}while(edge.id!=mesh.edges[mesh.faces[i].edge_id].id);
 
 		glEnd();
 	}
-	// int t = currentMesh;
-	// while(t>0)
-	// {
-	// 	mesh = myMesh[t-1];
-	// 	int delta = (currentMesh - t)*1;
+	int t = currentMesh;
+	while(t>0)
+	{
+		mesh = myMesh[t-1];
+		int delta = (currentMesh - t)*3;
 
-	// 	for(unsigned int i=0; i<mesh.faces.size(); ++i)
-	// 	{
+		for(unsigned int i=0; i<mesh.faces.size(); ++i)
+		{
 			
-	// 		glBegin(GL_TRIANGLES);
+			glBegin(GL_TRIANGLES);
 		
-	// 		glNormal3f(mesh.faces[i].faceNormal.x,mesh.faces[i].faceNormal.y,mesh.faces[i].faceNormal.z);
-	// 		// for(unsigned int j=0; j<mesh.faces[i].ver_id.size();++j)
-	// 		// {
-	// 		// 	glVertex3f(mesh.vertices[mesh.faces[i].ver_id[j]].point.x,mesh.vertices[mesh.faces[i].ver_id[j]].point.y,mesh.vertices[mesh.faces[i].ver_id[j]].point.z);
+			glNormal3f(mesh.faces[i].faceNormal.x,mesh.faces[i].faceNormal.y,mesh.faces[i].faceNormal.z);
+			// for(unsigned int j=0; j<mesh.faces[i].ver_id.size();++j)
+			// {
+			// 	glVertex3f(mesh.vertices[mesh.faces[i].ver_id[j]].point.x,mesh.vertices[mesh.faces[i].ver_id[j]].point.y,mesh.vertices[mesh.faces[i].ver_id[j]].point.z);
 
-	// 		// }
+			// }
 
-	// 		Edge edge;
+			Edge edge;
 
-	// 		edge = mesh.edges[mesh.faces[i].edge_id];
-	// 		do
-	// 		{
-	// 			edge = mesh.edges[edge.next_id];
-	// 			glTexCoord2f((mesh.texture_mapping[edge.texture_id]).x , (mesh.texture_mapping[edge.texture_id]).y);
-	// 			glVertex3f(mesh.vertices[edge.vertex_id].point.x , mesh.vertices[edge.vertex_id].point.y , mesh.vertices[edge.vertex_id].point.z);
-	// 		}while(edge.id!=mesh.edges[mesh.faces[i].edge_id].id);
+			edge = mesh.edges[mesh.faces[i].edge_id];
+			do
+			{
+				edge = mesh.edges[edge.next_id];
+				glTexCoord2f((mesh.texture_mapping[edge.texture_id]).x  , (mesh.texture_mapping[edge.texture_id]).y);
+				glVertex3f(mesh.vertices[edge.vertex_id].point.x + delta, mesh.vertices[edge.vertex_id].point.y , mesh.vertices[edge.vertex_id].point.z + delta);
+			}while(edge.id!=mesh.edges[mesh.faces[i].edge_id].id);
 
-	// 		glEnd();
-	// 	}
-	// 	t--;
-	// }
+			glEnd();
+		}
+		t--;
+	}
 
 }
 
@@ -421,12 +425,9 @@ void updateMesh()
 	Mesh newMesh;
 	if(currentMesh==(int)myMesh.size())
 	{
-		cout<<"In updateMesh"<<endl;
 
 		newMesh = getLoopSub(myMesh[currentMesh-1]);
 		setVertexNormal(newMesh);
-		cout<<"In updateMesh"<<endl;
-		// newMesh.vertices = getLoopVertices(newMesh);
 		myMesh.push_back(newMesh);
 
 	}
@@ -527,7 +528,6 @@ int main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(800, 600);
 	glutCreateWindow("LOOP SUBDIVISION");
-	cout<<"main"<<endl;
 	SetupRC();
 	glutReshapeFunc(ChangeSize);
 	glutDisplayFunc(RenderScene);
